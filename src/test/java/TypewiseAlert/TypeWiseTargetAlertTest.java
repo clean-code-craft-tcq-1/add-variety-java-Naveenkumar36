@@ -1,3 +1,4 @@
+/*
 package TypewiseAlert;
 
 import java.util.List;
@@ -21,3 +22,4 @@ public class TypeWiseTargetAlertTest {
     }
 
 }
+*/
