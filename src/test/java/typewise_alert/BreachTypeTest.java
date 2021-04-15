@@ -1,4 +1,4 @@
-package TypewiseAlert;
+package typewise_alert;
 
 import java.util.Arrays;
 import java.util.List;
@@ -7,7 +7,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import TypewiseAlert.breach.BreachType;
+import typewise_alert.breach.BreachType;
 
 import static org.junit.Assert.*;
 

@@ -1,4 +1,4 @@
-package TypewiseAlert.breach;
+package typewise_alert.breach;
 
 /**
  * @author {@literal Jayaram Naveenkumar (jayaram.naveenkumar@in.bosch.com)}
@@ -18,6 +18,14 @@ public enum BreachType {
         return message;
     }
 
+    /**
+     * Returns BreachType based on argument values
+     *
+     * @param value      input value
+     * @param lowerLimit minThreshold
+     * @param upperLimit maxThreshold
+     * @return BreachType
+     */
     public static BreachType inferBreach(
           double value,
           double lowerLimit,
