@@ -44,11 +44,20 @@ public final class ClassHandler {
             URL resource = resources.nextElement();
             dirs.add(new File(resource.getFile()));
         }
+        return getClassesFromDirectory(packageName, dirs).toArray(new Class[0]);
+    }
+
+    @org.jetbrains.annotations.NotNull
+    private static ArrayList<Class<?>> getClassesFromDirectory(
+          String packageName,
+          List<File> dirs
+    ) throws ClassNotFoundException
+    {
         ArrayList<Class<?>> classes = new ArrayList<>();
         for (File directory : dirs) {
             classes.addAll(findClasses(directory, packageName));
         }
-        return classes.toArray(new Class[0]);
+        return classes;
     }
 
     private static List<Class<?>> findClasses(
@@ -62,14 +71,33 @@ public final class ClassHandler {
         }
         File[] files = directory.listFiles();
         assert files != null;
+        return getClassesFromFileArray(packageName, files);
+    }
+
+    private static List<Class<?>> getClassesFromFileArray(
+          String packageName,
+          File[] files
+    ) throws ClassNotFoundException
+    {
+        List<Class<?>> classes = new ArrayList<>();
         for (File file : files) {
-            if (file.isDirectory()) {
-                assert !file.getName().contains(".");
-                classes.addAll(findClasses(file, packageName + '.' + file.getName()));
-            } else if (file.getName().endsWith(".class")) {
-                classes.add(Class.forName(
-                      packageName + '.' + file.getName().substring(0, file.getName().length() - 6)));
-            }
+            classes.addAll(getClassesBasedOnDirectoryAndFileName(packageName, file));
+        }
+        return classes;
+    }
+
+    private static List<Class<?>> getClassesBasedOnDirectoryAndFileName(
+          String packageName,
+          File file
+    ) throws ClassNotFoundException
+    {
+        List<Class<?>> classes = new ArrayList<>();
+        if (file.isDirectory()) {
+            assert !file.getName().contains(".");
+            classes.addAll(findClasses(file, packageName + '.' + file.getName()));
+        } else if (file.getName().endsWith(".class")) {
+            classes.add(Class.forName(
+                  packageName + '.' + file.getName().substring(0, file.getName().length() - 6)));
         }
         return classes;
     }

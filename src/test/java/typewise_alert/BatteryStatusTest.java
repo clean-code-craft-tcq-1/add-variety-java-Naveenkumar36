@@ -14,7 +14,6 @@ import typewise_alert.cooling.Cooling;
 import typewise_alert.listener.AlertListener;
 
 import static org.junit.Assert.*;
-import static typewise_alert.utils.ClassHandler.*;
 
 /**
  * @author {@literal Jayaram Naveenkumar (jayaram.naveenkumar@in.bosch.com)}
@@ -41,7 +40,7 @@ public class BatteryStatusTest {
 
     @Parameterized.Parameters
     public static List<Object> setUpTests() throws Throwable {
-        AlertListener alertListener = (AlertListener) getInstanceForNoArgConstructor(AlertListener.class);
+        AlertListener alertListener = new AlertListener();
         Field field = AlertListener.class.getDeclaredField("alerters");
         field.setAccessible(true);
         alerters = (List<Alerter>) LOOKUP.unreflectGetter(field).invoke(alertListener);
