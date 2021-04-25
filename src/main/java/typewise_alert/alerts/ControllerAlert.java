@@ -14,8 +14,4 @@ public class ControllerAlert implements Alerter {
         isInvoked = true;
         System.out.printf(type.getMessage());
     }
-
-    public boolean hasInvoked() {
-        return isInvoked;
-    }
 }

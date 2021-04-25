@@ -1,8 +1,11 @@
 package typewise_alert;
 
+import java.util.function.BiFunction;
+import java.util.function.Function;
+
+import typewise_alert.alerts.Alerter;
 import typewise_alert.breach.BreachType;
 import typewise_alert.cooling.Cooling;
-import typewise_alert.listener.AlertListener;
 
 import static typewise_alert.breach.BreachType.*;
 
@@ -13,32 +16,25 @@ import static typewise_alert.breach.BreachType.*;
  */
 public final class BatteryStatus {
 
-    private BatteryStatus() {
-    }
+    private static final BiFunction<Cooling, Double, BreachType> classifyTemperatureBreach =
+          (cooling, temperatureInC) -> inferBreach(temperatureInC, cooling.getLowerLimit(), cooling.getUpperLimit());
 
-    private static BreachType classifyTemperatureBreach(
-          Cooling coolingType,
-          double temperatureInC
-    )
-    {
-        return inferBreach(temperatureInC, coolingType.getLowerLimit(), coolingType.getUpperLimit());
+    private BatteryStatus() {
     }
 
     /**
      * Invoke alerters based on breach type
      *
-     * @param alertListener  AlertListener to invoke alerters
+     * @param alerter        AlertListener to invoke alerters
      * @param batteryChar    BatteryCharacter
      * @param temperatureInC double value
      */
     public static void checkAndAlert(
-          AlertListener alertListener,
+          Alerter alerter,
           BatteryCharacter batteryChar,
           double temperatureInC
     )
     {
-        alertListener.invokeAlerter(classifyTemperatureBreach(
-              batteryChar.getCoolingType(), temperatureInC
-        ));
+        alerter.alert(classifyTemperatureBreach.apply(batteryChar.getCoolingType(), temperatureInC));
     }
 }

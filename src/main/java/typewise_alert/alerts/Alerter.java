@@ -13,11 +13,4 @@ public interface Alerter {
      * @param type BreachType
      */
     void alert(BreachType type);
-
-    /**
-     * Returns boolean value if alert method is invoked
-     *
-     * @return boolean
-     */
-    boolean hasInvoked();
 }

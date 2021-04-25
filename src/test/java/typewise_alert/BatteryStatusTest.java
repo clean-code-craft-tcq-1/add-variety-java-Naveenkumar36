@@ -1,70 +1,101 @@
 package typewise_alert;
 
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Field;
-import java.util.Arrays;
-import java.util.List;
+import java.util.stream.Stream;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import typewise_alert.alerts.Alerter;
+import typewise_alert.alerts.ControllerAlert;
+import typewise_alert.alerts.MailAlert;
+import typewise_alert.breach.BreachType;
+import typewise_alert.command.CommandAlert;
 import typewise_alert.cooling.Cooling;
-import typewise_alert.listener.AlertListener;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 /**
  * @author {@literal Jayaram Naveenkumar (jayaram.naveenkumar@in.bosch.com)}
  */
-@RunWith(Parameterized.class)
-public class BatteryStatusTest {
+class BatteryStatusTest {
 
-    private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
-    private static List<Alerter> alerters = null;
-    private final AlertListener alertListener;
-    private final BatteryCharacter batteryCharacter;
-    private final double input;
+    private static final double MAX_THRESHOLD = 30;
+    private static final double MIN_THRESHOLD = 20;
 
-    public BatteryStatusTest(
-          AlertListener alertListener,
-          BatteryCharacter batteryCharacter,
-          double input
+    @ParameterizedTest
+    @MethodSource("argumentsData")
+    void infersBreachAsPerLimits(
+          double input,
+          double minThreshold,
+          double maxThreshold,
+          BreachType expectedResult
     )
     {
-        this.alertListener = alertListener;
-        this.batteryCharacter = batteryCharacter;
-        this.input = input;
+        BreachType breachType = BreachType.inferBreach(input, minThreshold, maxThreshold);
+        assertSame(breachType, expectedResult);
+        assertEquals(breachType.getMessage(), expectedResult.getMessage());
     }
 
-    @Parameterized.Parameters
-    public static List<Object> setUpTests() throws Throwable {
-        AlertListener alertListener = new AlertListener();
-        Field field = AlertListener.class.getDeclaredField("alerters");
-        field.setAccessible(true);
-        alerters = (List<Alerter>) LOOKUP.unreflectGetter(field).invoke(alertListener);
-
-        return Arrays.asList(new Object[][]{
-              // High value
-              {alertListener, new BatteryCharacter(Cooling.HI_ACTIVE_COOLING, ""), 50},
-              {alertListener, new BatteryCharacter(Cooling.MED_ACTIVE_COOLING, ""), 45},
-              {alertListener, new BatteryCharacter(Cooling.PASSIVE_COOLING, ""), 40},
-              // Low values
-              {alertListener, new BatteryCharacter(Cooling.HI_ACTIVE_COOLING, ""), -1},
-              {alertListener, new BatteryCharacter(Cooling.MED_ACTIVE_COOLING, ""), -5},
-              {alertListener, new BatteryCharacter(Cooling.PASSIVE_COOLING, ""), -4},
-              // Normal value
-              {alertListener, new BatteryCharacter(Cooling.HI_ACTIVE_COOLING, ""), 20},
-              {alertListener, new BatteryCharacter(Cooling.MED_ACTIVE_COOLING, ""), 25},
-              {alertListener, new BatteryCharacter(Cooling.PASSIVE_COOLING, ""), 15}
-        });
+    private static Stream<Arguments> argumentsData() {
+        return Stream.of(
+              Arguments.of(12, MIN_THRESHOLD, MAX_THRESHOLD, BreachType.TOO_LOW),
+              Arguments.of(60, MIN_THRESHOLD, MAX_THRESHOLD, BreachType.TOO_HIGH),
+              Arguments.of(25, MIN_THRESHOLD, MAX_THRESHOLD, BreachType.NORMAL)
+        );
     }
 
-    @Test
-    public void testIfAllAlertersAreInvoked() {
-        BatteryStatus.checkAndAlert(alertListener, batteryCharacter, input);
-        int totalAlerterInvoked = (int) alerters.stream().filter(Alerter::hasInvoked).count();
-        assertTrue(alerters.size() == totalAlerterInvoked);
+    @ParameterizedTest
+    @MethodSource("arguments")
+    void givenBatterStatus_whenBreachTypeIsHighOrLow_ThenEmailAlert(
+          double input,
+          BatteryCharacter batteryCharacter,
+          BreachType expectedType
+    )
+    {
+        // ARRANGE
+        Alerter alerter = spy(new MailAlert());
+        // ACT
+        BatteryStatus.checkAndAlert(alerter, batteryCharacter, input);
+        // ASSERT
+        verify(alerter).alert(expectedType);
+    }
+
+    @ParameterizedTest
+    @MethodSource("arguments")
+    void givenBatterStatus_whenBreachTypeIsHighOrLow_ThenVerifyAlerters(
+          double input,
+          BatteryCharacter batteryCharacter,
+          BreachType expectedType
+    )
+    {
+        // ARRANGE
+        CommandAlert alerter = spy(new CommandAlert());
+        MailAlert mailAlert = spy(new MailAlert());
+        ControllerAlert controllerAlert = spy(new ControllerAlert());
+        alerter.addAlerter(mailAlert);
+        alerter.addAlerter(controllerAlert);
+        // ACT
+        BatteryStatus.checkAndAlert(alerter, batteryCharacter, input);
+        // ASSERT
+        verify(alerter).alert(expectedType);
+        verify(mailAlert).alert(expectedType);
+        verify(controllerAlert).alert(expectedType);
+        verify(alerter, times(2)).addAlerter(any());
+    }
+
+    private static Stream<Arguments> arguments() {
+        return Stream.of(
+              Arguments.of(60, new BatteryCharacter(Cooling.HI_ACTIVE_COOLING, ""), BreachType.TOO_HIGH),
+              Arguments.of(50, new BatteryCharacter(Cooling.MED_ACTIVE_COOLING, ""), BreachType.TOO_HIGH),
+              Arguments.of(45, new BatteryCharacter(Cooling.PASSIVE_COOLING, ""), BreachType.TOO_HIGH),
+              Arguments.of(40, new BatteryCharacter(Cooling.HI_ACTIVE_COOLING, ""), BreachType.NORMAL),
+              Arguments.of(30, new BatteryCharacter(Cooling.MED_ACTIVE_COOLING, ""), BreachType.NORMAL),
+              Arguments.of(20, new BatteryCharacter(Cooling.PASSIVE_COOLING, ""), BreachType.NORMAL),
+              Arguments.of(-1, new BatteryCharacter(Cooling.HI_ACTIVE_COOLING, ""), BreachType.TOO_LOW),
+              Arguments.of(-2, new BatteryCharacter(Cooling.MED_ACTIVE_COOLING, ""), BreachType.TOO_LOW),
+              Arguments.of(-3, new BatteryCharacter(Cooling.PASSIVE_COOLING, ""), BreachType.TOO_LOW)
+        );
     }
 }

@@ -16,8 +16,4 @@ public class MailAlert implements Alerter {
         System.out.printf("To: %s\n", recipients);
         System.out.println(type.getMessage());
     }
-
-    public boolean hasInvoked() {
-        return isInvoked;
-    }
 }
