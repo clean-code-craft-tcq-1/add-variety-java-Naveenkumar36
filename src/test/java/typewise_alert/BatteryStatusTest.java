@@ -5,6 +5,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.*;
 
 import typewise_alert.alerts.Alerter;
 import typewise_alert.alerts.ControllerAlert;
@@ -56,10 +57,12 @@ class BatteryStatusTest {
     {
         // ARRANGE
         Alerter alerter = spy(new MailAlert());
+        ArgumentCaptor<BreachType> breachTypeArgumentCaptor = ArgumentCaptor.forClass(BreachType.class);
         // ACT
         BatteryStatus.checkAndAlert(alerter, batteryCharacter, input);
         // ASSERT
-        verify(alerter).alert(expectedType);
+        verify(alerter).alert(breachTypeArgumentCaptor.capture());
+        assertEquals(breachTypeArgumentCaptor.getValue(), expectedType);
     }
 
     @ParameterizedTest
@@ -71,6 +74,7 @@ class BatteryStatusTest {
     )
     {
         // ARRANGE
+        ArgumentCaptor<BreachType> breachTypeArgumentCaptor = ArgumentCaptor.forClass(BreachType.class);
         CommandAlert alerter = spy(new CommandAlert());
         MailAlert mailAlert = spy(new MailAlert());
         ControllerAlert controllerAlert = spy(new ControllerAlert());
@@ -79,9 +83,12 @@ class BatteryStatusTest {
         // ACT
         BatteryStatus.checkAndAlert(alerter, batteryCharacter, input);
         // ASSERT
-        verify(alerter).alert(expectedType);
-        verify(mailAlert).alert(expectedType);
-        verify(controllerAlert).alert(expectedType);
+        verify(alerter).alert(breachTypeArgumentCaptor.capture());
+        assertEquals(breachTypeArgumentCaptor.getValue(), expectedType);
+        verify(mailAlert).alert(breachTypeArgumentCaptor.capture());
+        assertEquals(breachTypeArgumentCaptor.getValue(), expectedType);
+        verify(controllerAlert).alert(breachTypeArgumentCaptor.capture());
+        assertEquals(breachTypeArgumentCaptor.getValue(), expectedType);
         verify(alerter, times(2)).addAlerter(any());
     }
 
